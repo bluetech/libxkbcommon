@@ -272,7 +272,7 @@ CheckModifierField(struct xkb_keymap *keymap, enum xkb_action_type action,
                        istreq(valStr, "modmapmods"))) {
 
             *mods_rtrn = 0;
-            *flags_inout |= ACTION_MODS_LOOKUP_MODMAP;
+            *flags_inout |= ACTION_MODS_LOOKUP_MODMAPS;
             return true;
         }
     }
@@ -281,7 +281,7 @@ CheckModifierField(struct xkb_keymap *keymap, enum xkb_action_type action,
         return ReportMismatch(keymap, action,
                               ACTION_FIELD_MODIFIERS, "modifier mask");
 
-    *flags_inout &= ~ACTION_MODS_LOOKUP_MODMAP;
+    *flags_inout &= ~ACTION_MODS_LOOKUP_MODMAPS;
     return true;
 }
 

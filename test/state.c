@@ -323,10 +323,10 @@ test_consume(struct xkb_keymap *keymap)
     print_state(state);
 
     mask = xkb_state_serialize_mods(state, XKB_STATE_MODS_EFFECTIVE);
-    assert(mask == ((1 << alt) | (1 << shift)));
+    assert((mask & ((1 << alt) | (1 << shift))) == ((1 << alt) | (1 << shift)));
     mask = xkb_state_mod_mask_remove_consumed(state, KEY_EQUAL + EVDEV_OFFSET,
                                               mask);
-    assert(mask == (1 << alt));
+    assert((mask & ((1 << alt) | (1 << shift))) == (1 << alt));
 
     xkb_state_unref(state);
 }
