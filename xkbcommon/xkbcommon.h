@@ -1200,6 +1200,59 @@ xkb_state_update_mask(struct xkb_state *state,
                       xkb_layout_index_t latched_layout,
                       xkb_layout_index_t locked_layout);
 
+/*
+ * Possible options for setting a LED.
+ * @see xkb_state_led_index_set()
+ */
+enum xkb_set_led {
+    /** Light the LED. */
+    XKB_LED_ON,
+    /** Turn off the LED. */
+    XKB_LED_OFF,
+    /** Toggle the LED. */
+    XKB_LED_TOGGLE
+};
+
+/**
+ * Change the keyboard state to match a state of a given LED.
+ *
+ * @param state The keyboard state object.
+ * @param idx The index of the LED.
+ * @param set_led Whether to set the led, turn it off, or toggle it.
+ *
+ * @returns A mask of state components that have changed as a result of
+ * the update.  If nothing in the state has changed, returns 0.
+ *
+ * You should note a few things when using this function:
+ *
+ * The state of the LEDs is tightly bound to the other
+ * components of the state (e.g. active modifiers and layouts), such
+ * that changing the one may change any of the others.
+ *
+ * In some cases, the state of a LED cannot be changed; the function
+ * returns nothing (consider it to be 'best-effort').
+ *
+ * This function can be used when there is a need to inherit the state of
+ * a LED from another place, such as an input device, virtual terminal or a
+ * display server, but the state of the modifiers is not known directly.
+ * If this is not case, there is no need to use this function.
+ *
+ * For example, to set the Num Lock modifier and LED:
+ * @code
+ * enum xkb_state_component changed;
+ * xkb_led_index_t idx;
+ *
+ * idx = xkb_keymap_led_get_index(keymap, XKB_LED_NAME_NUM);
+ * if (idx == XKB_LED_INVALID) return;
+ * changed = xkb_state_led_index_set(state, idx, XKB_LED_ON);
+ * @endcode
+ *
+ * @memberof xkb_state
+ */
+enum xkb_state_component
+xkb_state_led_index_set(struct xkb_state *state, xkb_led_index_t idx,
+                        enum xkb_set_led set_led);
+
 /**
  * Get the keysyms obtained from pressing a particular key in a given
  * keyboard state.

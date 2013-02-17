@@ -753,6 +753,44 @@ xkb_state_update_key(struct xkb_state *state, xkb_keycode_t kc,
     return get_state_component_changes(&prev_components, &state->components);
 }
 
+XKB_EXPORT enum xkb_state_component
+xkb_state_led_index_set(struct xkb_state *state, xkb_led_index_t idx,
+                        enum xkb_set_led set_led)
+{
+    const struct xkb_led *led;
+    struct state_components prev_components;
+
+    if (idx >= darray_size(state->keymap->leds))
+        return 0;
+
+    led = &darray_item(state->keymap->leds, idx);
+    if (led->name == XKB_ATOM_NONE)
+        return 0;
+
+    /* We currently only support updating locked modifiers. */
+    if (led->which_groups || led->ctrls ||
+        led->which_mods != XKB_STATE_MODS_LOCKED)
+        return 0;
+
+    prev_components = state->components;
+
+    switch (set_led) {
+    case XKB_LED_ON:
+        state->components.locked_mods |= led->mods.mask;
+        break;
+    case XKB_LED_OFF:
+        state->components.locked_mods &= ~led->mods.mask;
+        break;
+    case XKB_LED_TOGGLE:
+        state->components.locked_mods ^= led->mods.mask;
+        break;
+    }
+
+    xkb_state_update_derived(state);
+
+    return get_state_component_changes(&prev_components, &state->components);
+}
+
 /**
  * Updates the state from a set of explicit masks as gained from
  * xkb_state_serialize_mods and xkb_state_serialize_groups.  As noted in the

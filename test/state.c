@@ -420,6 +420,160 @@ test_caps_keysym_transformation(struct xkb_keymap *keymap)
     xkb_state_unref(state);
 }
 
+static void
+test_set_led(struct xkb_keymap *keymap)
+{
+    struct xkb_state *state = xkb_state_new(keymap);
+
+    /*
+     * We test the interaction of key presses/releases and the
+     * xkb_state_led_index_set() function on the Caps Lock and Num Lock
+     * locked modifiers and LEDs.
+     */
+
+    xkb_mod_index_t mod_num, mod_caps;
+    xkb_led_index_t led_num, led_caps;
+
+    assert(state);
+
+    /* Get indexes of mods and leds */
+    mod_num = xkb_keymap_mod_get_index(keymap, XKB_MOD_NAME_NUM);
+    assert(mod_num != XKB_MOD_INVALID);
+    mod_caps = xkb_keymap_mod_get_index(keymap, XKB_MOD_NAME_CAPS);
+    assert(mod_caps != XKB_MOD_INVALID);
+    led_num = xkb_keymap_led_get_index(keymap, XKB_LED_NAME_NUM);
+    assert(led_num != XKB_LED_INVALID);
+    led_caps = xkb_keymap_led_get_index(keymap, XKB_LED_NAME_CAPS);
+    assert(led_caps != XKB_LED_INVALID);
+
+    /* Initially none are set. */
+    assert(!xkb_state_mod_index_is_active(state, mod_num, XKB_STATE_MODS_EFFECTIVE));
+    assert(!xkb_state_mod_index_is_active(state, mod_caps, XKB_STATE_MODS_EFFECTIVE));
+    assert(!xkb_state_led_index_is_active(state, led_num));
+    assert(!xkb_state_led_index_is_active(state, led_caps));
+
+    /* Lock them with key press + release. */
+    assert(xkb_state_update_key(state, KEY_CAPSLOCK + EVDEV_OFFSET, XKB_KEY_DOWN) ==
+           (XKB_STATE_MODS_DEPRESSED | XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+    assert(xkb_state_update_key(state, KEY_CAPSLOCK + EVDEV_OFFSET, XKB_KEY_UP) ==
+           XKB_STATE_MODS_DEPRESSED);
+    assert(xkb_state_update_key(state, KEY_NUMLOCK + EVDEV_OFFSET, XKB_KEY_DOWN) ==
+           (XKB_STATE_MODS_DEPRESSED | XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+    assert(xkb_state_update_key(state, KEY_NUMLOCK + EVDEV_OFFSET, XKB_KEY_UP) ==
+           XKB_STATE_MODS_DEPRESSED);
+
+    /* Now they should all be set. */
+    assert(xkb_state_mod_index_is_active(state, mod_num, XKB_STATE_MODS_EFFECTIVE));
+    assert(xkb_state_mod_index_is_active(state, mod_caps, XKB_STATE_MODS_EFFECTIVE));
+    assert(xkb_state_mod_index_is_active(state, mod_num, XKB_STATE_MODS_LOCKED));
+    assert(xkb_state_mod_index_is_active(state, mod_caps, XKB_STATE_MODS_LOCKED));
+    assert(xkb_state_led_index_is_active(state, led_num));
+    assert(xkb_state_led_index_is_active(state, led_caps));
+
+    /* Unlock them with key press + release. */
+    assert(xkb_state_update_key(state, KEY_CAPSLOCK + EVDEV_OFFSET, XKB_KEY_DOWN) ==
+           XKB_STATE_MODS_DEPRESSED);
+    assert(xkb_state_update_key(state, KEY_CAPSLOCK + EVDEV_OFFSET, XKB_KEY_UP) ==
+           (XKB_STATE_MODS_DEPRESSED | XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+    assert(xkb_state_update_key(state, KEY_NUMLOCK + EVDEV_OFFSET, XKB_KEY_DOWN) ==
+           XKB_STATE_MODS_DEPRESSED);
+    assert(xkb_state_update_key(state, KEY_NUMLOCK + EVDEV_OFFSET, XKB_KEY_UP) ==
+           (XKB_STATE_MODS_DEPRESSED | XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+
+    /* Unsetting them with set_led when they're already unset does nothing. */
+    assert(xkb_state_led_index_set(state, led_num, XKB_LED_OFF) == 0);
+    assert(xkb_state_led_index_set(state, led_caps, XKB_LED_OFF) == 0);
+
+    /* Set them with set_led. */
+    assert(xkb_state_led_index_set(state, led_num, XKB_LED_ON) ==
+           (XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+    assert(xkb_state_led_index_set(state, led_caps, XKB_LED_ON) ==
+           (XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+
+    /* Make sure they're set. */
+    assert(xkb_state_mod_index_is_active(state, mod_num, XKB_STATE_MODS_EFFECTIVE));
+    assert(xkb_state_mod_index_is_active(state, mod_caps, XKB_STATE_MODS_EFFECTIVE));
+    assert(xkb_state_mod_index_is_active(state, mod_num, XKB_STATE_MODS_LOCKED));
+    assert(xkb_state_mod_index_is_active(state, mod_caps, XKB_STATE_MODS_LOCKED));
+    assert(xkb_state_led_index_is_active(state, led_num));
+    assert(xkb_state_led_index_is_active(state, led_caps));
+
+    /* Unset them with set_led. */
+    assert(xkb_state_led_index_set(state, led_num, XKB_LED_OFF) ==
+           (XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+    assert(xkb_state_led_index_set(state, led_caps, XKB_LED_OFF) ==
+           (XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+
+    /* Make sure they're unset. */
+    assert(!xkb_state_mod_index_is_active(state, mod_num, XKB_STATE_MODS_EFFECTIVE));
+    assert(!xkb_state_mod_index_is_active(state, mod_caps, XKB_STATE_MODS_EFFECTIVE));
+    assert(!xkb_state_led_index_is_active(state, led_num));
+    assert(!xkb_state_led_index_is_active(state, led_caps));
+
+    /* Set them again with set_led. */
+    assert(xkb_state_led_index_set(state, led_num, XKB_LED_ON) ==
+           (XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+    assert(xkb_state_led_index_set(state, led_caps, XKB_LED_ON) ==
+           (XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+
+    /* Unlock them with key press + release. */
+    assert(xkb_state_update_key(state, KEY_CAPSLOCK + EVDEV_OFFSET, XKB_KEY_DOWN) ==
+           XKB_STATE_MODS_DEPRESSED);
+    assert(xkb_state_update_key(state, KEY_CAPSLOCK + EVDEV_OFFSET, XKB_KEY_UP) ==
+           (XKB_STATE_MODS_DEPRESSED | XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+    assert(xkb_state_update_key(state, KEY_NUMLOCK + EVDEV_OFFSET, XKB_KEY_DOWN) ==
+           XKB_STATE_MODS_DEPRESSED);
+    assert(xkb_state_update_key(state, KEY_NUMLOCK + EVDEV_OFFSET, XKB_KEY_UP) ==
+           (XKB_STATE_MODS_DEPRESSED | XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+
+    /* Make sure they're unset. */
+    assert(!xkb_state_mod_index_is_active(state, mod_num, XKB_STATE_MODS_EFFECTIVE));
+    assert(!xkb_state_mod_index_is_active(state, mod_caps, XKB_STATE_MODS_EFFECTIVE));
+    assert(!xkb_state_led_index_is_active(state, led_num));
+    assert(!xkb_state_led_index_is_active(state, led_caps));
+
+    /* Lock them with key press + release. */
+    assert(xkb_state_update_key(state, KEY_CAPSLOCK + EVDEV_OFFSET, XKB_KEY_DOWN) ==
+           (XKB_STATE_MODS_DEPRESSED | XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+    assert(xkb_state_update_key(state, KEY_CAPSLOCK + EVDEV_OFFSET, XKB_KEY_UP) ==
+           XKB_STATE_MODS_DEPRESSED);
+    assert(xkb_state_update_key(state, KEY_NUMLOCK + EVDEV_OFFSET, XKB_KEY_DOWN) ==
+           (XKB_STATE_MODS_DEPRESSED | XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+    assert(xkb_state_update_key(state, KEY_NUMLOCK + EVDEV_OFFSET, XKB_KEY_UP) ==
+           XKB_STATE_MODS_DEPRESSED);
+
+    /* Unset them with set_led (toggle). */
+    assert(xkb_state_led_index_set(state, led_num, XKB_LED_TOGGLE) ==
+           (XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+    assert(xkb_state_led_index_set(state, led_caps, XKB_LED_TOGGLE) ==
+           (XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+
+    /* Make sure they're unset. */
+    assert(!xkb_state_mod_index_is_active(state, mod_num, XKB_STATE_MODS_EFFECTIVE));
+    assert(!xkb_state_mod_index_is_active(state, mod_caps, XKB_STATE_MODS_EFFECTIVE));
+    assert(!xkb_state_led_index_is_active(state, led_num));
+    assert(!xkb_state_led_index_is_active(state, led_caps));
+
+    /* Toggle them again just to make sure that it works. */
+    assert(xkb_state_led_index_set(state, led_num, XKB_LED_TOGGLE) ==
+           (XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+    assert(xkb_state_led_index_set(state, led_caps, XKB_LED_TOGGLE) ==
+           (XKB_STATE_MODS_LOCKED | XKB_STATE_MODS_EFFECTIVE | XKB_STATE_LEDS));
+
+    /* Make sure they're set. */
+    assert(xkb_state_mod_index_is_active(state, mod_num, XKB_STATE_MODS_EFFECTIVE));
+    assert(xkb_state_mod_index_is_active(state, mod_caps, XKB_STATE_MODS_EFFECTIVE));
+    assert(xkb_state_mod_index_is_active(state, mod_num, XKB_STATE_MODS_LOCKED));
+    assert(xkb_state_mod_index_is_active(state, mod_caps, XKB_STATE_MODS_LOCKED));
+    assert(xkb_state_led_index_is_active(state, led_num));
+    assert(xkb_state_led_index_is_active(state, led_caps));
+
+    /* Not brave enough to test what happens when using set_leds()
+     * between press and release. */
+
+    xkb_state_unref(state);
+}
+
 int
 main(void)
 {
@@ -441,6 +595,7 @@ main(void)
     test_repeat(keymap);
     test_consume(keymap);
     test_range(keymap);
+    test_set_led(keymap);
 
     xkb_keymap_unref(keymap);
     keymap = test_compile_rules(context, "evdev", NULL, "ch", "fr", NULL);
