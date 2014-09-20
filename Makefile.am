@@ -178,7 +178,8 @@ TESTS = \
 	test/utf8 \
 	test/state \
 	test/keyseq \
-	test/rulescomp
+	test/rulescomp \
+	test/shortcut
 check_PROGRAMS = \
 	test/rmlvo-to-kccgst \
 	test/print-compiled-keymap \
@@ -202,6 +203,7 @@ test_rulescomp_LDADD = $(TESTS_LDADD) -lrt
 test_rmlvo_to_kccgst_LDADD = $(TESTS_LDADD)
 test_print_compiled_keymap_LDADD = $(TESTS_LDADD)
 test_bench_key_proc_LDADD = $(TESTS_LDADD) -lrt
+test_shortcut_LDADD = $(TESTS_LDADD)
 
 if BUILD_LINUX_TESTS
 check_PROGRAMS += \
