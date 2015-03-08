@@ -7,3 +7,8 @@ global:
 local:
 	*;
 };
+
+V_0.5.1 {
+global:
+	xkb_x11_keymap_set_for_device;
+} V_0.5.0;

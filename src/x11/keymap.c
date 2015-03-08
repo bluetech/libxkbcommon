@@ -1174,3 +1174,317 @@ xkb_x11_keymap_new_from_device(struct xkb_context *ctx,
 
     return keymap;
 }
+
+static bool
+set_map(xcb_connection_t *conn, uint16_t device_id, struct xkb_keymap *keymap)
+{
+    xcb_void_cookie_t cookie;
+    xcb_error_t *error;
+
+    const uint16_t present =
+        XCB_XKB_MAP_PART_KEY_TYPES
+        XCB_XKB_MAP_PART_KEY_SYMS |
+        XCB_XKB_MAP_PART_MODIFIER_MAP |
+        XCB_XKB_MAP_PART_EXPLICIT_COMPONENTS |
+        XCB_XKB_MAP_PART_KEY_ACTIONS |
+        /* XCB_XKB_MAP_PART_KEY_BEHAVIORS | */
+        XCB_XKB_MAP_PART_VIRTUAL_MODS |
+        XCB_XKB_MAP_PART_VIRTUAL_MOD_MAP;
+
+    /* TODO: see which we want. */
+    const uint16_t flags =
+        XCB_XKB_SET_MAP_FLAGS_RESIZE_TYPES |
+        XCB_XKB_SET_MAP_FLAGS_RECOMPUTE_ACTIONS;
+
+    /* TODO: truncate? */
+    assert(xkb_keycode_is_legal_x11(keymap->min_key_code));
+    assert(xkb_keycode_is_legal_x11(keymap->max_key_code));
+    assert(keymap->num_types <= sizeof(uint8_t) * 8);
+
+    const uint8_t num_key_codes = keymap->max_key_code - keymap->min_key_code + 1;
+
+    xcb_xkb_set_map_values_t values = { NULL };
+
+    /* XXX: xcb can't handle the following... */
+
+    /* struct xcb_xkb_set_key_type_t { */
+    /*     uint8_t  mask; */
+    /*     uint8_t  realMods; */
+    /*     uint16_t virtualMods; */
+    /*     uint8_t  numLevels; */
+    /*     uint8_t  nMapEntries; */
+    /*     uint8_t  preserve; */
+    /* }; */
+    ALLOC_OR_FAIL(values.types, keymap->num_key_types);
+    for (unsigned i = 0; i < keymap->num_key_types; i++) {
+        const struct xkb_key_type *type = keymap->types[i];
+
+        values.types[i].mask
+        values.types[i].realMods
+        values.types[i].virtualMods
+        values.types[i].numLevels
+        values.types[i].nMapEntries
+        values.types[i].preserve
+    }
+    /* TODO */
+
+    /*     xcb_xkb_key_sym_map_t   *syms; */
+    ALLOC_OR_FAIL(values.syms, num_key_codes);
+    /* TODO */
+
+    /*     uint8_t                 *actionsCount; */
+    /*     xcb_xkb_action_t        *actions; */
+    ALLOC_OR_FAIL(values.actionsCount, num_key_codes);
+    ALLOC_OR_FAIL(values.actions, num_key_codes);
+    /* TODO */
+
+    /*     xcb_xkb_set_explicit_t  *explicit; */
+    ALLOC_OR_FAIL(values.explicit, num_key_codes);
+    /* TODO */
+
+    /*     xcb_xkb_key_mod_map_t   *modmap; */
+    ALLOC_OR_FAIL(values.modmap, num_key_codes);
+    /* TODO */
+
+    /*     xcb_xkb_key_v_mod_map_t *vmodmap; */
+    ALLOC_OR_FAIL(values.vmodmap, num_key_codes);
+    /* TODO */
+
+    /*     uint8_t                 *vmods; */
+    ALLOC_OR_FAIL(values.vmods, /* TODO */);
+    /* TODO */
+
+    cookie = xcb_xkb_set_map_aux_checked(conn,                           /* conn */
+                                         device_id,                      /* deviceSpec */
+                                         present,                        /* present */
+                                         flags,                          /* flags */
+
+                                         keymap->min_key_code,           /* minKeyCode */
+                                         keymap->max_key_code,           /* maxKeyCode */
+
+                                         0,                              /* firstType */
+                                         keymap->num_types               /* nTypes */
+
+                                         keymap->min_key_code,           /* firstKeySym */
+                                         num_key_codes,                  /* nKeySyms */
+                                         /* uint16_t                        totalSyms */
+
+                                         min_key_code,                   /* firstKeyAction */
+                                         num_key_codes,                  /* nKeyActions */
+                                         /* uint16_t                        totalActions */
+
+                                         /* TODO: behaviors? */
+                                         0,                              /* firstKeyBehavior */
+                                         0,                              /* nKeyBehaviors */
+                                         0,                              /* totalKeyBehaviors */
+
+                                         keymap->min_key_code,           /* firstKeyExplicit */
+                                         num_key_codes,                  /* nKeyExplicit */
+                                         /* uint8_t                         totalKeyExplicit */
+
+                                         keymap->min_key_code,           /* firstModMapKey */
+                                         num_key_codes,                  /* nModMapKeys */
+                                         /* uint8_t                         totalModMapKeys */
+
+                                         keymap->min_key_code,           /* firstVModMapKey */
+                                         num_key_codes,                  /* nVModMapKeys */
+                                         /* uint8_t                         totalVModMapKeys */
+                                         /* uint16_t                        virtualMods */
+
+                                         &values                         /* values */);
+
+    error = xcb_request_check(conn, cookie);
+    if (error) {
+        /* TODO */
+        free(error);
+        return false;
+    }
+
+    return true;
+
+fail:
+    /* TODO */
+    return false;
+}
+
+static bool
+set_indicator_map(xcb_connection_t *conn, uint16_t device_id, struct xkb_keymap *keymap)
+{
+    xcb_void_cookie_t cookie;
+    xcb_error_t *error;
+
+    assert(keymap->num_leds < NUM_INDICATORS);
+
+    const uint32_t which = /* TODO: indicator mask */;
+
+    /* struct xcb_xkb_indicator_map_t { */
+    /*     uint8_t  flags; */
+    /*     uint8_t  whichGroups; */
+    /*     uint8_t  groups; */
+    /*     uint8_t  whichMods; */
+    /*     uint8_t  mods; */
+    /*     uint8_t  realMods; */
+    /*     uint16_t vmods; */
+    /*     uint32_t ctrls; */
+    /* }; */
+
+    xcb_xkb_indicator_map_t *maps = /* TODO */;
+
+    cookie = xcb_xkb_set_indicator_map_checked(conn,
+                                               device_id,
+                                               which,
+                                               maps);
+
+    error = xcb_request_check(conn, cookie);
+    if (error) {
+        /* TODO */
+        free(error);
+        return false;
+    }
+
+    return true;
+}
+
+static bool
+set_controls(xcb_connection_t *conn, uint16_t device_id, struct xkb_keymap *keymap)
+{
+    xcb_void_cookie_t cookie;
+    xcb_error_t *error;
+
+    cookie = xcb_xkb_set_controls_checked(conn,
+                                          device_id,
+                                          uint8_t                affectInternalRealMods,
+                                          uint8_t                internalRealMods,
+                                          uint8_t                affectIgnoreLockRealMods,
+                                          uint8_t                ignoreLockRealMods,
+                                          uint16_t               affectInternalVirtualMods,
+                                          uint16_t               internalVirtualMods,
+                                          uint16_t               affectIgnoreLockVirtualMods,
+                                          uint16_t               ignoreLockVirtualMods,
+                                          uint8_t                mouseKeysDfltBtn,
+                                          uint8_t                groupsWrap,
+                                          uint16_t               accessXOptions,
+                                          uint32_t               affectEnabledControls,
+                                          uint32_t               enabledControls,
+                                          uint32_t               changeControls,
+                                          uint16_t               repeatDelay,
+                                          uint16_t               repeatInterval,
+                                          uint16_t               slowKeysDelay,
+                                          uint16_t               debounceDelay,
+                                          uint16_t               mouseKeysDelay,
+                                          uint16_t               mouseKeysInterval,
+                                          uint16_t               mouseKeysTimeToMax,
+                                          uint16_t               mouseKeysMaxSpeed,
+                                          int16_t                mouseKeysCurve,
+                                          uint16_t               accessXTimeout,
+                                          uint32_t               accessXTimeoutMask,
+                                          uint32_t               accessXTimeoutValues,
+                                          uint16_t               accessXTimeoutOptionsMask,
+                                          uint16_t               accessXTimeoutOptionsValues,
+                                          const uint8_t         *perKeyRepeat);
+
+    error = xcb_request_check(conn, cookie);
+    if (error) {
+        /* TODO */
+        free(error);
+        return false;
+    }
+
+    return true;
+}
+
+static bool
+set_compat_map(xcb_connection_t *conn, uint16_t device_id, struct xkb_keymap *keymap)
+{
+    xcb_void_cookie_t cookie;
+    xcb_error_t *error;
+
+    cookie = xcb_xkb_set_compat_map_checked(conn,
+                                            device_id,
+                                            uint8_t                        recomputeActions,
+                                            uint8_t                        truncateSI,
+                                            uint8_t                        groups,
+                                            uint16_t                       firstSI,
+                                            uint16_t                       nSI,
+                                            const xcb_xkb_sym_interpret_t *si,
+                                            const xcb_xkb_mod_def_t       *groupMaps);
+
+    error = xcb_request_check(conn, cookie);
+    if (error) {
+        /* TODO */
+        free(error);
+        return false;
+    }
+
+    return true;
+}
+
+static bool
+set_names(xcb_connection_t *conn, uint16_t device_id, struct xkb_keymap *keymap)
+{
+    xcb_void_cookie_t cookie;
+    xcb_error_t *error;
+
+    /* struct xcb_xkb_set_names_values_t { */
+    /*     xcb_atom_t           keycodesName; */
+    /*     xcb_atom_t           geometryName; */
+    /*     xcb_atom_t           symbolsName; */
+    /*     xcb_atom_t           physSymbolsName; */
+    /*     xcb_atom_t           typesName; */
+    /*     xcb_atom_t           compatName; */
+    /*     xcb_atom_t          *typeNames; */
+    /*     uint8_t             *nLevelsPerType; */
+    /*     xcb_atom_t          *ktLevelNames; */
+    /*     xcb_atom_t          *indicatorNames; */
+    /*     xcb_atom_t          *virtualModNames; */
+    /*     xcb_atom_t          *groups; */
+    /*     xcb_xkb_key_name_t  *keyNames; */
+    /*     xcb_xkb_key_alias_t *keyAliases; */
+    /*     xcb_atom_t          *radioGroupNames; */
+    /* }; */
+
+    xcb_xkb_set_names_values_t *values = /* TODO */;
+
+    cookie = xcb_xkb_set_names_aux_checked(conn,
+                                           device_id,
+                                           uint16_t                          virtualMods,
+                                           uint32_t                          which,
+                                           uint8_t                           firstType,
+                                           uint8_t                           nTypes,
+                                           uint8_t                           firstKTLevelt,
+                                           uint8_t                           nKTLevels,
+                                           uint32_t                          indicators,
+                                           uint8_t                           groupNames,
+                                           uint8_t                           nRadioGroups,
+                                           xcb_keycode_t                     firstKey,
+                                           uint8_t                           nKeys,
+                                           uint8_t                           nKeyAliases,
+                                           uint16_t                          totalKTLevelNames,
+                                           values);
+
+    error = xcb_request_check(conn, cookie);
+    if (error) {
+        /* TODO */
+        free(error);
+        return false;
+    }
+
+    return true;
+}
+
+XKB_EXPORT int
+xkb_x11_keymap_set_for_device(struct xkb_context *ctx,
+                              xcb_connection_t *conn,
+                              int32_t device_id,
+                              struct xkb_keymap *keymap)
+{
+    if (!set_map(conn, device_id, keymap) ||
+        !set_indicator_map(conn, device_id, keymap) ||
+        !set_controls(conn, device_id, keymap) ||
+        !set_compat_map(conn, device_id, keymap) ||
+        !set_names(conn, device_id, keymap)) {
+        return 0;
+    }
+
+    return 1;
+}
