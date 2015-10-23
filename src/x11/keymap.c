@@ -1174,3 +1174,108 @@ xkb_x11_keymap_new_from_device(struct xkb_context *ctx,
 
     return keymap;
 }
+
+static bool
+get_core_keymap(struct xkb_keymap *keymap, xcb_connection_t *conn)
+{
+    xcb_keycode_t min_keycode, max_keycode;
+
+    {
+        const xcb_setup_t *setup = xcb_get_setup(conn);
+        min_keycode = setup->min_keycode;
+        max_keycode = setup->max_keycode;
+        FAIL_UNLESS(min_keycode >= 8);
+        FAIL_UNLESS(min_keycode <= max_keycode);
+    }
+
+    {
+        xcb_get_keyboard_control_cookie_t cookie =
+            xcb_get_keyboard_control(conn);
+        xcb_get_keyboard_control_reply_t *reply =
+            xcb_get_keyboard_control_reply(conn, cookie, NULL);
+        /* uint8_t  reply->global_auto_repeat; */
+        /* uint32_t reply->led_mask; */
+        /* uint8_t  reply->auto_repeats[32]; */
+        FAIL_IF_BAD_REPLY(reply, "GetKeyboardControl");
+        free(reply);
+    }
+
+    {
+        xcb_get_modifier_mapping_cookie_t cookie =
+            xcb_get_modifier_mapping(conn);
+        xcb_get_modifier_mapping_reply_t *reply =
+            xcb_get_modifier_mapping_reply(conn, cookie, NULL);
+        FAIL_IF_BAD_REPLY(reply, "GetModifierMapping");
+        uint8_t keycodes_per_modifier = reply->keycodes_per_modifier;
+        /* TODO: manpage signature is wrong! (says _request_t instead of _reply_t) */
+        xcb_keycode_t *keycodes =
+            xcb_get_modifier_mapping_keycodes(reply);
+        int keycodes_length =
+            xcb_get_modifier_mapping_keycodes_length(reply);
+        FAIL_UNLESS(keycodes_length == 8 * keycodes_per_modifier);
+
+        for (unsigned i = 0; i < 8; i++) {
+            printf("Modifier %u\n", i);
+            for (unsigned j = 0; j < keycodes_per_modifier; j++)
+                printf("%u ", keycodes[i * keycodes_per_modifier + j]);
+            printf("\n");
+        }
+
+        free(reply);
+    }
+
+    {
+        xcb_get_keyboard_mapping_cookie_t cookie =
+            xcb_get_keyboard_mapping(conn, min_keycode, max_keycode - min_keycode + 1);
+        xcb_get_keyboard_mapping_reply_t *reply =
+            xcb_get_keyboard_mapping_reply(conn, cookie, NULL);
+        FAIL_IF_BAD_REPLY(reply, "GetKeyboardMapping");
+        uint8_t keysyms_per_keycode = reply->keysyms_per_keycode;
+        /* TODO: manpage signature is wrong! (says _request_t instead of _reply_t) */
+        xcb_keysym_t *keysyms =
+            xcb_get_keyboard_mapping_keysyms(reply);
+        int keysyms_length =
+            xcb_get_keyboard_mapping_keysyms_length(reply);
+        FAIL_UNLESS(keysyms_length == (max_keycode - min_keycode + 1) * keysyms_per_keycode);
+
+        for (unsigned i = min_keycode; i <= max_keycode; i++) {
+            printf("Keycode %u\n", i);
+            for (unsigned j = 0; j < keysyms_per_keycode; j++) {
+                char ks[256] = {};
+                xkb_keysym_get_name(keysyms[(i - min_keycode) * keysyms_per_keycode + j],
+                                    ks, sizeof(ks));
+                printf("%s ", ks);
+            }
+            printf("\n");
+        }
+
+        free(reply);
+    }
+
+
+fail:
+    return false;
+}
+
+XKB_EXPORT struct xkb_keymap *
+xkb_x11_keymap_new_from_core(struct xkb_context *ctx,
+                             xcb_connection_t *conn,
+                             enum xkb_keymap_compile_flags flags) {
+    struct xkb_keymap *keymap;
+    const enum xkb_keymap_format format = XKB_KEYMAP_FORMAT_TEXT_V1;
+
+    if (flags & ~(XKB_KEYMAP_COMPILE_NO_FLAGS)) {
+        log_err_func(ctx, "unrecognized flags: %#x\n", flags);
+        return NULL;
+    }
+
+    keymap = xkb_keymap_new(ctx, format, flags);
+    if (!keymap)
+        return NULL;
+
+    if (!get_core_keymap(keymap, conn)) {
+        return NULL;
+    }
+
+    return keymap;
+}

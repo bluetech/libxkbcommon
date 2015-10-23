@@ -212,6 +212,11 @@ xkb_x11_keymap_new_from_device(struct xkb_context *context,
                                int32_t device_id,
                                enum xkb_keymap_compile_flags flags);
 
+struct xkb_keymap *
+xkb_x11_keymap_new_from_core(struct xkb_context *context,
+                             xcb_connection_t *connection,
+                             enum xkb_keymap_compile_flags flags);
+
 /**
  * Create a new keyboard state object from an X11 keyboard device.
  *
