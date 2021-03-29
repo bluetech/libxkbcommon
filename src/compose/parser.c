@@ -339,9 +339,16 @@ add_node(struct xkb_compose_table *table, xkb_keysym_t keysym)
     return darray_size(table->nodes) - 1;
 }
 
+struct add_production_cache_entry {
+    xkb_keysym_t keysym;
+    unsigned pos;
+};
+
 static void
-add_production(struct xkb_compose_table *table, struct scanner *s,
-               const struct production *production)
+add_production(struct xkb_compose_table *table,
+               struct scanner *s,
+               const struct production *production,
+               struct add_production_cache_entry cache[MAX_LHS_LEN])
 {
     unsigned lhs_pos;
     uint32_t curr;
@@ -360,17 +367,26 @@ add_production(struct xkb_compose_table *table, struct scanner *s,
      * in the 1st and 2nd keysyms, which is where the largest variation
      * (thus, longest search) is.
      */
+    bool cache_matched = true;
     for (lhs_pos = 0; lhs_pos < production->len; lhs_pos++) {
-        while (production->lhs[lhs_pos] != node->keysym) {
-            if (node->next == 0) {
-                uint32_t next = add_node(table, production->lhs[lhs_pos]);
-                /* Refetch since add_node could have realloc()ed. */
-                node = &darray_item(table->nodes, curr);
-                node->next = next;
-            }
-
-            curr = node->next;
+        if (cache_matched && production->lhs[lhs_pos] == cache[lhs_pos].keysym) {
+            curr = cache[lhs_pos].pos;
             node = &darray_item(table->nodes, curr);
+        } else {
+            while (production->lhs[lhs_pos] != node->keysym) {
+                if (node->next == 0) {
+                    uint32_t next = add_node(table, production->lhs[lhs_pos]);
+                    /* Refetch since add_node could have realloc()ed. */
+                    node = &darray_item(table->nodes, curr);
+                    node->next = next;
+                }
+
+                curr = node->next;
+                node = &darray_item(table->nodes, curr);
+            }
+            cache[lhs_pos].keysym = node->keysym;
+            cache[lhs_pos].pos = curr;
+            cache_matched = false;
         }
 
         if (lhs_pos + 1 == production->len)
@@ -513,6 +529,7 @@ parse(struct xkb_compose_table *table, struct scanner *s,
     union lvalue val;
     xkb_keysym_t keysym;
     struct production production;
+    struct add_production_cache_entry cache[MAX_LHS_LEN] = {};
     enum { MAX_ERRORS = 10 };
     int num_errors = 0;
 
@@ -675,7 +692,7 @@ rhs:
             scanner_warn(s, "right-hand side must have at least one of string or keysym; skipping line");
             goto skip;
         }
-        add_production(table, s, &production);
+        add_production(table, s, &production, cache);
         goto initial;
     default:
         goto unexpected;
