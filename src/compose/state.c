@@ -91,8 +91,8 @@ xkb_compose_state_get_compose_table(struct xkb_compose_state *state)
 XKB_EXPORT enum xkb_compose_feed_result
 xkb_compose_state_feed(struct xkb_compose_state *state, xkb_keysym_t keysym)
 {
-    uint32_t context;
-    const struct compose_node *node;
+    /* uint32_t context; */
+    /* const struct compose_node *node; */
 
     /*
      * Modifiers do not affect the sequence directly.  In particular,
@@ -107,21 +107,21 @@ xkb_compose_state_feed(struct xkb_compose_state *state, xkb_keysym_t keysym)
     if (xkb_keysym_is_modifier(keysym))
         return XKB_COMPOSE_FEED_IGNORED;
 
-    node = &darray_item(state->table->nodes, state->context);
+/*     node = &darray_item(state->table->nodes, state->context); */
 
-    context = (node->is_leaf ? 0 : node->u.successor);
-    node = &darray_item(state->table->nodes, context);
+/*     context = (node->is_leaf ? 0 : node->u.successor); */
+/*     node = &darray_item(state->table->nodes, context); */
 
-    while (node->keysym != keysym && node->next != 0) {
-        context = node->next;
-        node = &darray_item(state->table->nodes, context);
-    }
+/*     while (node->keysym != keysym && node->next != 0) { */
+/*         context = node->next; */
+/*         node = &darray_item(state->table->nodes, context); */
+/*     } */
 
-    if (node->keysym != keysym)
-        context = 0;
+/*     if (node->keysym != keysym) */
+/*         context = 0; */
 
-    state->prev_context = state->context;
-    state->context = context;
+/*     state->prev_context = state->context; */
+/*     state->context = context; */
     return XKB_COMPOSE_FEED_ACCEPTED;
 }
 
@@ -135,19 +135,19 @@ xkb_compose_state_reset(struct xkb_compose_state *state)
 XKB_EXPORT enum xkb_compose_status
 xkb_compose_state_get_status(struct xkb_compose_state *state)
 {
-    const struct compose_node *prev_node, *node;
+    /* const struct compose_node *prev_node, *node; */
 
-    prev_node = &darray_item(state->table->nodes, state->prev_context);
-    node = &darray_item(state->table->nodes, state->context);
+    /* prev_node = &darray_item(state->table->nodes, state->prev_context); */
+    /* node = &darray_item(state->table->nodes, state->context); */
 
-    if (state->context == 0 && !prev_node->is_leaf)
-        return XKB_COMPOSE_CANCELLED;
+    /* if (state->context == 0 && !prev_node->is_leaf) */
+    /*     return XKB_COMPOSE_CANCELLED; */
 
-    if (state->context == 0)
-        return XKB_COMPOSE_NOTHING;
+    /* if (state->context == 0) */
+    /*     return XKB_COMPOSE_NOTHING; */
 
-    if (!node->is_leaf)
-        return XKB_COMPOSE_COMPOSING;
+    /* if (!node->is_leaf) */
+    /*     return XKB_COMPOSE_COMPOSING; */
 
     return XKB_COMPOSE_COMPOSED;
 }
@@ -156,32 +156,32 @@ XKB_EXPORT int
 xkb_compose_state_get_utf8(struct xkb_compose_state *state,
                            char *buffer, size_t size)
 {
-    const struct compose_node *node =
-        &darray_item(state->table->nodes, state->context);
+    /* const struct compose_node *node = */
+    /*     &darray_item(state->table->nodes, state->context); */
 
-    if (!node->is_leaf)
-        goto fail;
+    /* if (!node->is_leaf) */
+    /*     goto fail; */
 
-    /* If there's no string specified, but only a keysym, try to do the
-     * most helpful thing. */
-    if (node->u.leaf.utf8 == 0 && node->u.leaf.keysym != XKB_KEY_NoSymbol) {
-        char name[64];
-        int ret;
+    /* /1* If there's no string specified, but only a keysym, try to do the */
+    /*  * most helpful thing. *1/ */
+    /* if (node->u.leaf.utf8 == 0 && node->u.leaf.keysym != XKB_KEY_NoSymbol) { */
+    /*     char name[64]; */
+    /*     int ret; */
 
-        ret = xkb_keysym_to_utf8(node->u.leaf.keysym, name, sizeof(name));
-        if (ret < 0 || ret == 0) {
-            /* ret < 0 is impossible.
-             * ret == 0 means the keysym has no string representation. */
-            goto fail;
-        }
+    /*     ret = xkb_keysym_to_utf8(node->u.leaf.keysym, name, sizeof(name)); */
+    /*     if (ret < 0 || ret == 0) { */
+    /*         /1* ret < 0 is impossible. */
+    /*          * ret == 0 means the keysym has no string representation. *1/ */
+    /*         goto fail; */
+    /*     } */
 
-        return snprintf(buffer, size, "%s", name);
-    }
+    /*     return snprintf(buffer, size, "%s", name); */
+    /* } */
 
-    return snprintf(buffer, size, "%s",
-                    &darray_item(state->table->utf8, node->u.leaf.utf8));
+    /* return snprintf(buffer, size, "%s", */
+    /*                 &darray_item(state->table->utf8, node->u.leaf.utf8)); */
 
-fail:
+/* fail: */
     if (size > 0)
         buffer[0] = '\0';
     return 0;
@@ -190,9 +190,9 @@ fail:
 XKB_EXPORT xkb_keysym_t
 xkb_compose_state_get_one_sym(struct xkb_compose_state *state)
 {
-    const struct compose_node *node =
-        &darray_item(state->table->nodes, state->context);
-    if (!node->is_leaf)
+    /* const struct compose_node *node = */
+    /*     &darray_item(state->table->nodes, state->context); */
+    /* if (!node->is_leaf) */
         return XKB_KEY_NoSymbol;
-    return node->u.leaf.keysym;
+    /* return node->u.leaf.keysym; */
 }

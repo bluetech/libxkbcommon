@@ -56,15 +56,15 @@ xkb_compose_table_new(struct xkb_context *ctx,
     table->flags = flags;
 
     darray_init(table->nodes);
+    darray_init(table->sequences);
     darray_init(table->utf8);
 
+    root.sequence = 0;
+    root.sequence_len = 1;
+    root.utf8 = 0;
     root.keysym = XKB_KEY_NoSymbol;
-    root.next = 0;
-    root.is_leaf = true;
-    root.u.leaf.utf8 = 0;
-    root.u.leaf.keysym = XKB_KEY_NoSymbol;
     darray_append(table->nodes, root);
-
+    darray_append(table->sequences, XKB_KEY_NoSymbol);
     darray_append(table->utf8, '\0');
 
     return table;

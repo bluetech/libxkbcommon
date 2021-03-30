@@ -28,61 +28,13 @@
 #include "utils.h"
 #include "context.h"
 
-/*
- * The compose table data structure is a simple trie.  An example will
- * help.  Given these sequences:
- *
- *      <A> <B>        : "first"  dead_a
- *      <A> <C> <D>    : "second" dead_b
- *      <E> <F>        : "third"  dead_c
- *
- * the trie would look like:
- *
- * [root] ---> [<A>] -----------------> [<E>] -#
- *   |           |                        |
- *   #           v                        v
- *             [<B>] ---> [<C>] -#      [<F>] -#
- *               |          |             -
- *               #          v             #
- *                        [<D>] -#
- *                          |
- *                          #
- * where:
- * - [root] is a special empty root node.
- * - [<X>] is a node for a sequence keysym <X>.
- * - right arrows are `next` pointers.
- * - down arrows are `successor` pointers.
- * - # is a nil pointer.
- *
- * The nodes are all kept in a contiguous array.  Pointers are represented
- * as integer offsets into this array.  A nil pointer is represented as 0
- * (which, helpfully, is the offset of the empty root node).
- *
- * Nodes without a successor are leaf nodes.  Since a sequence cannot be a
- * prefix of another, these are exactly the nodes which terminate the
- * sequences (in a bijective manner).
- *
- * A leaf contains the result data of its sequence.  The result keysym is
- * contained in the node struct itself; the result UTF-8 string is a byte
- * offset into an array of the form "\0first\0second\0third" (the initial
- * \0 is so offset 0 points to an empty string).
- */
-
 struct compose_node {
+    /* Offset in xbk_compose_table::sequences. */
+    uint32_t sequence:24;
+    uint32_t sequence_len:8;
+    /* Offset into xkb_compose-table::utf8. */
+    uint32_t utf8;
     xkb_keysym_t keysym;
-    /* Offset into xkb_compose_table::nodes. */
-    unsigned int next:31;
-    bool is_leaf:1;
-
-    union {
-        /* Offset into xkb_compose_table::nodes. */
-        uint32_t successor;
-        struct {
-            /* Offset into xkb_compose_table::utf8. */
-            uint32_t utf8;
-            xkb_keysym_t keysym;
-        } leaf;
-    } u;
 };
 
 struct xkb_compose_table {
@@ -93,8 +45,9 @@ struct xkb_compose_table {
 
     char *locale;
 
-    darray_char utf8;
     darray(struct compose_node) nodes;
+    darray(xkb_keysym_t) sequences;
+    darray_char utf8;
 };
 
 #endif
