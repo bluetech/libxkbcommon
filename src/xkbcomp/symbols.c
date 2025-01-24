@@ -825,13 +825,13 @@ AddSymbolsToKey(SymbolsInfo *info, KeyInfo *keyi, ExprDef *arrayNdx,
         struct xkb_level *leveli = &darray_item(groupi->levels, level);
         assert(leveli->num_syms == 0);
 
-        leveli->num_syms = darray_size(keysymList->syms);
+        leveli->num_syms = keysymList->num_syms;
         switch (leveli->num_syms) {
         case 0:
             leveli->s.sym = XKB_KEY_NoSymbol;
             break;
         case 1:
-            leveli->s.sym = darray_item(keysymList->syms, 0);
+            leveli->s.sym = keysymList->syms[0];
             assert(leveli->s.sym != XKB_KEY_NoSymbol);
             break;
         default:
@@ -844,7 +844,7 @@ AddSymbolsToKey(SymbolsInfo *info, KeyInfo *keyi, ExprDef *arrayNdx,
                 return false;
             }
             memcpy(leveli->s.syms,
-                   &darray_item(keysymList->syms, 0),
+                   keysymList->syms,
                    leveli->num_syms * sizeof(*leveli->s.syms));
 #ifndef NDEBUG
             /* Canonical list: all NoSymbol were dropped */

@@ -12,7 +12,6 @@
 #include "xkbcommon/xkbcommon.h"
 
 #include "atom.h"
-#include "darray.h"
 
 enum xkb_file_type {
     /* Component files, by order of compilation. */
@@ -176,7 +175,8 @@ typedef struct {
 typedef struct {
     ParseCommon common;
     /* List of keysym for a single level. */
-    darray(xkb_keysym_t) syms;
+    uint32_t num_syms;
+    xkb_keysym_t *syms;
 } ExprKeysymList;
 
 union ExprDef {

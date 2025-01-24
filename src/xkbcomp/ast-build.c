@@ -169,11 +169,18 @@ ExprCreateKeysymList(xkb_keysym_t sym)
     ExprDef *expr = ExprCreate(STMT_EXPR_KEYSYM_LIST, sizeof(ExprKeysymList));
     if (!expr)
         return NULL;
-    darray_init(expr->keysym_list.syms);
     if (sym == XKB_KEY_NoSymbol) {
         /* Discard NoSymbol */
+        expr->keysym_list.num_syms = 0;
+        expr->keysym_list.syms = NULL;
     } else {
-        darray_append(expr->keysym_list.syms, sym);
+        expr->keysym_list.syms = malloc(sizeof(*expr->keysym_list.syms));
+        if (!expr->keysym_list.syms) {
+            FreeStmt(&expr->common);
+            return NULL;
+        }
+        expr->keysym_list.num_syms = 1;
+        expr->keysym_list.syms[0] = sym;
     }
     return expr;
 }
@@ -184,7 +191,9 @@ ExprAppendKeysymList(ExprDef *expr, xkb_keysym_t sym)
     if (sym == XKB_KEY_NoSymbol) {
         /* Discard NoSymbol */
     } else {
-        darray_append(expr->keysym_list.syms, sym);
+        ExprKeysymList *kl = &expr->keysym_list;
+        kl->syms = realloc(kl->syms, (kl->num_syms + 1) * sizeof(*kl->syms));
+        kl->syms[kl->num_syms++] = sym;
     }
     return expr;
 }
@@ -583,7 +592,7 @@ FreeStmt(ParseCommon *stmt)
             break;
 
         case STMT_EXPR_KEYSYM_LIST:
-            darray_free(((ExprKeysymList *) stmt)->syms);
+            free(((ExprKeysymList *) stmt)->syms);
             break;
 
         case STMT_VAR:
