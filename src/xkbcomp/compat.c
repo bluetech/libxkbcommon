@@ -16,7 +16,6 @@
 #include "action.h"
 #include "vmod.h"
 #include "include.h"
-#include "util-mem.h"
 
 enum si_field {
     SI_FIELD_VIRTUAL_MOD = (1 << 0),
@@ -360,7 +359,7 @@ MergeIncludedCompatMaps(CompatInfo *into, CompatInfo *from,
     into->mods = from->mods;
 
     if (into->name == NULL) {
-        into->name = steal(&from->name);
+        into->name = strdup(from->name);
     }
 
     if (darray_empty(into->interps)) {
@@ -395,7 +394,7 @@ static void
 HandleCompatMapFile(CompatInfo *info, XkbFile *file, enum merge_mode merge);
 
 static bool
-HandleIncludeCompatMap(CompatInfo *info, IncludeStmt *include)
+HandleIncludeCompatMap(struct bump *bump, CompatInfo *info, IncludeStmt *include)
 {
     CompatInfo included;
 
@@ -406,13 +405,13 @@ HandleIncludeCompatMap(CompatInfo *info, IncludeStmt *include)
 
     InitCompatInfo(&included, info->ctx, 0 /* unused */,
                    info->actions, &info->mods);
-    included.name = steal(&include->stmt);
+    included.name = strdup(include->stmt);
 
     for (IncludeStmt *stmt = include; stmt; stmt = stmt->next_incl) {
         CompatInfo next_incl;
         XkbFile *file;
 
-        file = ProcessIncludeFile(info->ctx, stmt, FILE_TYPE_COMPAT);
+        file = ProcessIncludeFile(bump, info->ctx, stmt, FILE_TYPE_COMPAT);
         if (!file) {
             info->errorCount += 10;
             ClearCompatInfo(&included);
@@ -431,7 +430,6 @@ HandleIncludeCompatMap(CompatInfo *info, IncludeStmt *include)
         MergeIncludedCompatMaps(&included, &next_incl, stmt->merge);
 
         ClearCompatInfo(&next_incl);
-        FreeXkbFile(file);
     }
 
     MergeIncludedCompatMaps(info, &included, include->merge);
@@ -735,7 +733,7 @@ HandleCompatMapFile(CompatInfo *info, XkbFile *file, enum merge_mode merge)
     for (ParseCommon *stmt = file->defs; stmt; stmt = stmt->next) {
         switch (stmt->type) {
         case STMT_INCLUDE:
-            ok = HandleIncludeCompatMap(info, (IncludeStmt *) stmt);
+            ok = HandleIncludeCompatMap(file->bump, info, (IncludeStmt *) stmt);
             break;
         case STMT_INTERP:
             ok = HandleInterpDef(info, (InterpDef *) stmt, merge);

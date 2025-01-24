@@ -11,10 +11,10 @@ struct scanner;
 #include "parser.h"
 
 int
-_xkbcommon_lex(YYSTYPE *yylval, struct scanner *scanner);
+_xkbcommon_lex(YYSTYPE *yylval, struct scanner *s, struct bump *bump);
 
 XkbFile *
-parse(struct xkb_context *ctx, struct scanner *scanner, const char *map);
+parse(struct bump *bump, struct xkb_context *ctx, struct scanner *scanner, const char *map);
 
 int
 keyword_to_token(const char *string, size_t len);

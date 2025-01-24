@@ -12,6 +12,7 @@
  * Author: Ran Benita <ran234@gmail.com>
  */
 
+#include "bump.h"
 #include "config.h"
 
 #include "xkbcomp-priv.h"
@@ -19,9 +20,9 @@
 #include "include.h"
 
 static ExprDef *
-ExprCreate(enum stmt_type op, size_t size)
+ExprCreate(struct bump *bump, enum stmt_type op, size_t size)
 {
-    ExprDef *expr = malloc(size);
+    ExprDef *expr = bump_aligned_alloc(bump, alignof(ExprDef), size);
     if (!expr)
         return NULL;
 
@@ -32,9 +33,9 @@ ExprCreate(enum stmt_type op, size_t size)
 }
 
 ExprDef *
-ExprCreateString(xkb_atom_t str)
+ExprCreateString(struct bump *bump, xkb_atom_t str)
 {
-    ExprDef *expr = ExprCreate(STMT_EXPR_STRING_LITERAL, sizeof(ExprString));
+    ExprDef *expr = ExprCreate(bump, STMT_EXPR_STRING_LITERAL, sizeof(ExprString));
     if (!expr)
         return NULL;
     expr->string.str = str;
@@ -42,9 +43,9 @@ ExprCreateString(xkb_atom_t str)
 }
 
 ExprDef *
-ExprCreateInteger(int ival)
+ExprCreateInteger(struct bump *bump, int ival)
 {
-    ExprDef *expr = ExprCreate(STMT_EXPR_INTEGER_LITERAL, sizeof(ExprInteger));
+    ExprDef *expr = ExprCreate(bump, STMT_EXPR_INTEGER_LITERAL, sizeof(ExprInteger));
     if (!expr)
         return NULL;
     expr->integer.ival = ival;
@@ -52,18 +53,18 @@ ExprCreateInteger(int ival)
 }
 
 ExprDef *
-ExprCreateFloat(void)
+ExprCreateFloat(struct bump *bump)
 {
-    ExprDef *expr = ExprCreate(STMT_EXPR_FLOAT_LITERAL, sizeof(ExprFloat));
+    ExprDef *expr = ExprCreate(bump, STMT_EXPR_FLOAT_LITERAL, sizeof(ExprFloat));
     if (!expr)
         return NULL;
     return expr;
 }
 
 ExprDef *
-ExprCreateBoolean(bool set)
+ExprCreateBoolean(struct bump *bump, bool set)
 {
-    ExprDef *expr = ExprCreate(STMT_EXPR_BOOLEAN_LITERAL, sizeof(ExprBoolean));
+    ExprDef *expr = ExprCreate(bump, STMT_EXPR_BOOLEAN_LITERAL, sizeof(ExprBoolean));
     if (!expr)
         return NULL;
     expr->boolean.set = set;
@@ -71,9 +72,9 @@ ExprCreateBoolean(bool set)
 }
 
 ExprDef *
-ExprCreateKeyName(xkb_atom_t key_name)
+ExprCreateKeyName(struct bump *bump, xkb_atom_t key_name)
 {
-    ExprDef *expr = ExprCreate(STMT_EXPR_KEYNAME_LITERAL, sizeof(ExprKeyName));
+    ExprDef *expr = ExprCreate(bump, STMT_EXPR_KEYNAME_LITERAL, sizeof(ExprKeyName));
     if (!expr)
         return NULL;
     expr->key_name.key_name = key_name;
@@ -81,9 +82,9 @@ ExprCreateKeyName(xkb_atom_t key_name)
 }
 
 ExprDef *
-ExprCreateIdent(xkb_atom_t ident)
+ExprCreateIdent(struct bump *bump, xkb_atom_t ident)
 {
-    ExprDef *expr = ExprCreate(STMT_EXPR_IDENT, sizeof(ExprIdent));
+    ExprDef *expr = ExprCreate(bump, STMT_EXPR_IDENT, sizeof(ExprIdent));
     if (!expr)
         return NULL;
     expr->ident.ident = ident;
@@ -91,9 +92,9 @@ ExprCreateIdent(xkb_atom_t ident)
 }
 
 ExprDef *
-ExprCreateUnary(enum stmt_type op, ExprDef *child)
+ExprCreateUnary(struct bump *bump, enum stmt_type op, ExprDef *child)
 {
-    ExprDef *expr = ExprCreate(op, sizeof(ExprUnary));
+    ExprDef *expr = ExprCreate(bump, op, sizeof(ExprUnary));
     if (!expr)
         return NULL;
     expr->unary.child = child;
@@ -101,9 +102,9 @@ ExprCreateUnary(enum stmt_type op, ExprDef *child)
 }
 
 ExprDef *
-ExprCreateBinary(enum stmt_type op, ExprDef *left, ExprDef *right)
+ExprCreateBinary(struct bump *bump, enum stmt_type op, ExprDef *left, ExprDef *right)
 {
-    ExprDef *expr = ExprCreate(op, sizeof(ExprBinary));
+    ExprDef *expr = ExprCreate(bump, op, sizeof(ExprBinary));
     if (!expr)
         return NULL;
 
@@ -114,9 +115,9 @@ ExprCreateBinary(enum stmt_type op, ExprDef *left, ExprDef *right)
 }
 
 ExprDef *
-ExprCreateFieldRef(xkb_atom_t element, xkb_atom_t field)
+ExprCreateFieldRef(struct bump *bump, xkb_atom_t element, xkb_atom_t field)
 {
-    ExprDef *expr = ExprCreate(STMT_EXPR_FIELD_REF, sizeof(ExprFieldRef));
+    ExprDef *expr = ExprCreate(bump, STMT_EXPR_FIELD_REF, sizeof(ExprFieldRef));
     if (!expr)
         return NULL;
     expr->field_ref.element = element;
@@ -125,9 +126,9 @@ ExprCreateFieldRef(xkb_atom_t element, xkb_atom_t field)
 }
 
 ExprDef *
-ExprCreateArrayRef(xkb_atom_t element, xkb_atom_t field, ExprDef *entry)
+ExprCreateArrayRef(struct bump *bump, xkb_atom_t element, xkb_atom_t field, ExprDef *entry)
 {
-    ExprDef *expr = ExprCreate(STMT_EXPR_ARRAY_REF, sizeof(ExprArrayRef));
+    ExprDef *expr = ExprCreate(bump, STMT_EXPR_ARRAY_REF, sizeof(ExprArrayRef));
     if (!expr)
         return NULL;
     expr->array_ref.element = element;
@@ -137,15 +138,15 @@ ExprCreateArrayRef(xkb_atom_t element, xkb_atom_t field, ExprDef *entry)
 }
 
 ExprDef *
-ExprEmptyList(void)
+ExprEmptyList(struct bump *bump)
 {
-    return ExprCreate(STMT_EXPR_EMPTY_LIST, sizeof(ParseCommon));
+    return ExprCreate(bump, STMT_EXPR_EMPTY_LIST, sizeof(ParseCommon));
 }
 
 ExprDef *
-ExprCreateAction(xkb_atom_t name, ExprDef *args)
+ExprCreateAction(struct bump *bump, xkb_atom_t name, ExprDef *args)
 {
-    ExprDef *expr = ExprCreate(STMT_EXPR_ACTION_DECL, sizeof(ExprAction));
+    ExprDef *expr = ExprCreate(bump, STMT_EXPR_ACTION_DECL, sizeof(ExprAction));
     if (!expr)
         return NULL;
     expr->action.name = name;
@@ -154,9 +155,9 @@ ExprCreateAction(xkb_atom_t name, ExprDef *args)
 }
 
 ExprDef *
-ExprCreateActionList(ExprDef *actions)
+ExprCreateActionList(struct bump *bump, ExprDef *actions)
 {
-    ExprDef *expr = ExprCreate(STMT_EXPR_ACTION_LIST, sizeof(ExprActionList));
+    ExprDef *expr = ExprCreate(bump, STMT_EXPR_ACTION_LIST, sizeof(ExprActionList));
     if (!expr)
         return NULL;
     expr->actions.actions = actions;
@@ -164,9 +165,9 @@ ExprCreateActionList(ExprDef *actions)
 }
 
 ExprDef *
-ExprCreateKeysymList(xkb_keysym_t sym)
+ExprCreateKeysymList(struct bump *bump, xkb_keysym_t sym)
 {
-    ExprDef *expr = ExprCreate(STMT_EXPR_KEYSYM_LIST, sizeof(ExprKeysymList));
+    ExprDef *expr = ExprCreate(bump, STMT_EXPR_KEYSYM_LIST, sizeof(ExprKeysymList));
     if (!expr)
         return NULL;
     if (sym == XKB_KEY_NoSymbol) {
@@ -174,9 +175,8 @@ ExprCreateKeysymList(xkb_keysym_t sym)
         expr->keysym_list.num_syms = 0;
         expr->keysym_list.syms = NULL;
     } else {
-        expr->keysym_list.syms = malloc(sizeof(*expr->keysym_list.syms));
+        expr->keysym_list.syms = bump_new(bump, *expr->keysym_list.syms);
         if (!expr->keysym_list.syms) {
-            FreeStmt(&expr->common);
             return NULL;
         }
         expr->keysym_list.num_syms = 1;
@@ -186,22 +186,25 @@ ExprCreateKeysymList(xkb_keysym_t sym)
 }
 
 ExprDef *
-ExprAppendKeysymList(ExprDef *expr, xkb_keysym_t sym)
+ExprAppendKeysymList(struct bump *bump, ExprDef *expr, xkb_keysym_t sym)
 {
     if (sym == XKB_KEY_NoSymbol) {
         /* Discard NoSymbol */
     } else {
         ExprKeysymList *kl = &expr->keysym_list;
-        kl->syms = realloc(kl->syms, (kl->num_syms + 1) * sizeof(*kl->syms));
+        xkb_keysym_t *old = kl->syms;
+        kl->syms = bump_aligned_alloc(bump, alignof(xkb_keysym_t), (kl->num_syms + 1) * sizeof(*kl->syms));
+        for (unsigned i = 0; i < kl->num_syms; i++)
+            kl->syms[i] = old[i];
         kl->syms[kl->num_syms++] = sym;
     }
     return expr;
 }
 
 KeycodeDef *
-KeycodeCreate(xkb_atom_t name, int64_t value)
+KeycodeCreate(struct bump *bump, xkb_atom_t name, int64_t value)
 {
-    KeycodeDef *def = malloc(sizeof(*def));
+    KeycodeDef *def = bump_new(bump, *def);
     if (!def)
         return NULL;
 
@@ -214,9 +217,9 @@ KeycodeCreate(xkb_atom_t name, int64_t value)
 }
 
 KeyAliasDef *
-KeyAliasCreate(xkb_atom_t alias, xkb_atom_t real)
+KeyAliasCreate(struct bump *bump, xkb_atom_t alias, xkb_atom_t real)
 {
-    KeyAliasDef *def = malloc(sizeof(*def));
+    KeyAliasDef *def = bump_new(bump, *def);
     if (!def)
         return NULL;
 
@@ -229,9 +232,9 @@ KeyAliasCreate(xkb_atom_t alias, xkb_atom_t real)
 }
 
 VModDef *
-VModCreate(xkb_atom_t name, ExprDef *value)
+VModCreate(struct bump *bump, xkb_atom_t name, ExprDef *value)
 {
-    VModDef *def = malloc(sizeof(*def));
+    VModDef *def = bump_new(bump, *def);
     if (!def)
         return NULL;
 
@@ -244,9 +247,9 @@ VModCreate(xkb_atom_t name, ExprDef *value)
 }
 
 VarDef *
-VarCreate(ExprDef *name, ExprDef *value)
+VarCreate(struct bump *bump, ExprDef *name, ExprDef *value)
 {
-    VarDef *def = malloc(sizeof(*def));
+    VarDef *def = bump_new(bump, *def);
     if (!def)
         return NULL;
 
@@ -259,29 +262,26 @@ VarCreate(ExprDef *name, ExprDef *value)
 }
 
 VarDef *
-BoolVarCreate(xkb_atom_t ident, bool set)
+BoolVarCreate(struct bump *bump, xkb_atom_t ident, bool set)
 {
     ExprDef *name, *value;
     VarDef *def;
-    if (!(name = ExprCreateIdent(ident))) {
+    if (!(name = ExprCreateIdent(bump, ident))) {
         return NULL;
     }
-    if (!(value = ExprCreateBoolean(set))) {
-        FreeStmt((ParseCommon *) name);
+    if (!(value = ExprCreateBoolean(bump, set))) {
         return NULL;
     }
-    if (!(def = VarCreate(name, value))) {
-        FreeStmt((ParseCommon *) name);
-        FreeStmt((ParseCommon *) value);
+    if (!(def = VarCreate(bump, name, value))) {
         return NULL;
     }
     return def;
 }
 
 InterpDef *
-InterpCreate(xkb_keysym_t sym, ExprDef *match)
+InterpCreate(struct bump *bump, xkb_keysym_t sym, ExprDef *match)
 {
-    InterpDef *def = malloc(sizeof(*def));
+    InterpDef *def = bump_new(bump, *def);
     if (!def)
         return NULL;
 
@@ -295,9 +295,9 @@ InterpCreate(xkb_keysym_t sym, ExprDef *match)
 }
 
 KeyTypeDef *
-KeyTypeCreate(xkb_atom_t name, VarDef *body)
+KeyTypeCreate(struct bump *bump, xkb_atom_t name, VarDef *body)
 {
-    KeyTypeDef *def = malloc(sizeof(*def));
+    KeyTypeDef *def = bump_new(bump, *def);
     if (!def)
         return NULL;
 
@@ -311,9 +311,9 @@ KeyTypeCreate(xkb_atom_t name, VarDef *body)
 }
 
 SymbolsDef *
-SymbolsCreate(xkb_atom_t keyName, VarDef *symbols)
+SymbolsCreate(struct bump *bump, xkb_atom_t keyName, VarDef *symbols)
 {
-    SymbolsDef *def = malloc(sizeof(*def));
+    SymbolsDef *def = bump_new(bump, *def);
     if (!def)
         return NULL;
 
@@ -327,9 +327,9 @@ SymbolsCreate(xkb_atom_t keyName, VarDef *symbols)
 }
 
 GroupCompatDef *
-GroupCompatCreate(unsigned group, ExprDef *val)
+GroupCompatCreate(struct bump *bump, unsigned group, ExprDef *val)
 {
-    GroupCompatDef *def = malloc(sizeof(*def));
+    GroupCompatDef *def = bump_new(bump, *def);
     if (!def)
         return NULL;
 
@@ -343,9 +343,9 @@ GroupCompatCreate(unsigned group, ExprDef *val)
 }
 
 ModMapDef *
-ModMapCreate(xkb_atom_t modifier, ExprDef *keys)
+ModMapCreate(struct bump *bump, xkb_atom_t modifier, ExprDef *keys)
 {
-    ModMapDef *def = malloc(sizeof(*def));
+    ModMapDef *def = bump_new(bump, *def);
     if (!def)
         return NULL;
 
@@ -359,9 +359,9 @@ ModMapCreate(xkb_atom_t modifier, ExprDef *keys)
 }
 
 LedMapDef *
-LedMapCreate(xkb_atom_t name, VarDef *body)
+LedMapCreate(struct bump *bump, xkb_atom_t name, VarDef *body)
 {
-    LedMapDef *def = malloc(sizeof(*def));
+    LedMapDef *def = bump_new(bump, *def);
     if (!def)
         return NULL;
 
@@ -375,9 +375,9 @@ LedMapCreate(xkb_atom_t name, VarDef *body)
 }
 
 LedNameDef *
-LedNameCreate(unsigned ndx, ExprDef *name, bool virtual)
+LedNameCreate(struct bump *bump, unsigned ndx, ExprDef *name, bool virtual)
 {
-    LedNameDef *def = malloc(sizeof(*def));
+    LedNameDef *def = bump_new(bump, *def);
     if (!def)
         return NULL;
 
@@ -391,11 +391,8 @@ LedNameCreate(unsigned ndx, ExprDef *name, bool virtual)
     return def;
 }
 
-static void
-FreeInclude(IncludeStmt *incl);
-
 IncludeStmt *
-IncludeCreate(struct xkb_context *ctx, char *str, enum merge_mode merge)
+IncludeCreate(struct bump *bump, struct xkb_context *ctx, char *str, enum merge_mode merge)
 {
     IncludeStmt *incl, *first;
     char *stmt, *tmp;
@@ -403,12 +400,12 @@ IncludeCreate(struct xkb_context *ctx, char *str, enum merge_mode merge)
 
     incl = first = NULL;
     tmp = str;
-    stmt = strdup_safe(str);
+    stmt = str ? bump_strdup(bump, str) : NULL;
     while (tmp && *tmp)
     {
         char *file = NULL, *map = NULL, *extra_data = NULL;
 
-        if (!ParseIncludeMap(&tmp, &file, &map, &nextop, &extra_data))
+        if (!ParseIncludeMap(bump, &tmp, &file, &map, &nextop, &extra_data))
             goto err;
 
         /*
@@ -418,23 +415,17 @@ IncludeCreate(struct xkb_context *ctx, char *str, enum merge_mode merge)
          * appropriate section to deal with the empty group.
          */
         if (isempty(file)) {
-            free(file);
-            free(map);
-            free(extra_data);
             continue;
         }
 
         if (first == NULL) {
-            first = incl = malloc(sizeof(*first));
+            first = incl = bump_new(bump, *first);
         } else {
-            incl->next_incl = malloc(sizeof(*first));
+            incl->next_incl = bump_new(bump, *incl->next_incl);
             incl = incl->next_incl;
         }
 
         if (!incl) {
-            free(file);
-            free(map);
-            free(extra_data);
             break;
         }
 
@@ -455,32 +446,34 @@ IncludeCreate(struct xkb_context *ctx, char *str, enum merge_mode merge)
 
     if (first)
         first->stmt = stmt;
-    else
-        free(stmt);
 
     return first;
 
 err:
     log_err(ctx, XKB_ERROR_INVALID_INCLUDE_STATEMENT,
             "Illegal include statement \"%s\"; Ignored\n", stmt);
-    FreeInclude(first);
-    free(stmt);
     return NULL;
 }
 
 XkbFile *
-XkbFileCreate(enum xkb_file_type type, char *name, ParseCommon *defs,
-              enum xkb_map_flags flags)
+XkbFileCreate(struct bump *bump, enum xkb_file_type type, char *name,
+              ParseCommon *defs, enum xkb_map_flags flags)
 {
     XkbFile *file;
 
-    file = calloc(1, sizeof(*file));
+    file = bump_new(bump, *file);
     if (!file)
         return NULL;
+    memset(file, 0, sizeof(*file));
 
     XkbEscapeMapName(name);
+    file->bump = bump;
     file->file_type = type;
-    file->name = name ? name : strdup("(unnamed)");
+    if (name) {
+        file->name = name;
+    } else {
+        file->name = bump_strdup(bump, "(unnamed)");
+    }
     file->defs = defs;
     file->flags = flags;
 
@@ -488,7 +481,7 @@ XkbFileCreate(enum xkb_file_type type, char *name, ParseCommon *defs,
 }
 
 XkbFile *
-XkbFileFromComponents(struct xkb_context *ctx,
+XkbFileFromComponents(struct bump *bump, struct xkb_context *ctx,
                       const struct xkb_component_names *kkctgs)
 {
     char *const components[] = {
@@ -501,13 +494,12 @@ XkbFileFromComponents(struct xkb_context *ctx,
     ParseCommon *defs = NULL, *defsLast = NULL;
 
     for (type = FIRST_KEYMAP_FILE_TYPE; type <= LAST_KEYMAP_FILE_TYPE; type++) {
-        include = IncludeCreate(ctx, components[type], MERGE_DEFAULT);
+        include = IncludeCreate(bump, ctx, components[type], MERGE_DEFAULT);
         if (!include)
             goto err;
 
-        file = XkbFileCreate(type, NULL, (ParseCommon *) include, 0);
+        file = XkbFileCreate(bump, type, NULL, (ParseCommon *) include, 0);
         if (!file) {
-            FreeInclude(include);
             goto err;
         }
 
@@ -517,152 +509,14 @@ XkbFileFromComponents(struct xkb_context *ctx,
             defsLast = defsLast->next = &file->common;
     }
 
-    file = XkbFileCreate(FILE_TYPE_KEYMAP, NULL, defs, 0);
+    file = XkbFileCreate(bump, FILE_TYPE_KEYMAP, NULL, defs, 0);
     if (!file)
         goto err;
 
     return file;
 
 err:
-    FreeXkbFile((XkbFile *) defs);
     return NULL;
-}
-
-static void
-FreeInclude(IncludeStmt *incl)
-{
-    IncludeStmt *next;
-
-    while (incl)
-    {
-        next = incl->next_incl;
-
-        free(incl->file);
-        free(incl->map);
-        free(incl->modifier);
-        free(incl->stmt);
-
-        free(incl);
-        incl = next;
-    }
-}
-
-void
-FreeStmt(ParseCommon *stmt)
-{
-    ParseCommon *next;
-
-    while (stmt)
-    {
-        next = stmt->next;
-
-        switch (stmt->type) {
-        case STMT_INCLUDE:
-            FreeInclude((IncludeStmt *) stmt);
-            /* stmt is already free'd here. */
-            stmt = NULL;
-            break;
-
-        case STMT_EXPR_NEGATE:
-        case STMT_EXPR_UNARY_PLUS:
-        case STMT_EXPR_NOT:
-        case STMT_EXPR_INVERT:
-            FreeStmt((ParseCommon *) ((ExprUnary *) stmt)->child);
-            break;
-
-        case STMT_EXPR_DIVIDE:
-        case STMT_EXPR_ADD:
-        case STMT_EXPR_SUBTRACT:
-        case STMT_EXPR_MULTIPLY:
-        case STMT_EXPR_ASSIGN:
-            FreeStmt((ParseCommon *) ((ExprBinary *) stmt)->left);
-            FreeStmt((ParseCommon *) ((ExprBinary *) stmt)->right);
-            break;
-
-        case STMT_EXPR_ACTION_DECL:
-            FreeStmt((ParseCommon *) ((ExprAction *) stmt)->args);
-            break;
-
-        case STMT_EXPR_ACTION_LIST:
-            FreeStmt((ParseCommon *) ((ExprActionList *) stmt)->actions);
-            break;
-
-        case STMT_EXPR_ARRAY_REF:
-            FreeStmt((ParseCommon *) ((ExprArrayRef *) stmt)->entry);
-            break;
-
-        case STMT_EXPR_KEYSYM_LIST:
-            free(((ExprKeysymList *) stmt)->syms);
-            break;
-
-        case STMT_VAR:
-            FreeStmt((ParseCommon *) ((VarDef *) stmt)->name);
-            FreeStmt((ParseCommon *) ((VarDef *) stmt)->value);
-            break;
-        case STMT_TYPE:
-            FreeStmt((ParseCommon *) ((KeyTypeDef *) stmt)->body);
-            break;
-        case STMT_INTERP:
-            FreeStmt((ParseCommon *) ((InterpDef *) stmt)->match);
-            FreeStmt((ParseCommon *) ((InterpDef *) stmt)->def);
-            break;
-        case STMT_VMOD:
-            FreeStmt((ParseCommon *) ((VModDef *) stmt)->value);
-            break;
-        case STMT_SYMBOLS:
-            FreeStmt((ParseCommon *) ((SymbolsDef *) stmt)->symbols);
-            break;
-        case STMT_MODMAP:
-            FreeStmt((ParseCommon *) ((ModMapDef *) stmt)->keys);
-            break;
-        case STMT_GROUP_COMPAT:
-            FreeStmt((ParseCommon *) ((GroupCompatDef *) stmt)->def);
-            break;
-        case STMT_LED_MAP:
-            FreeStmt((ParseCommon *) ((LedMapDef *) stmt)->body);
-            break;
-        case STMT_LED_NAME:
-            FreeStmt((ParseCommon *) ((LedNameDef *) stmt)->name);
-            break;
-        default:
-            break;
-        }
-
-        free(stmt);
-        stmt = next;
-    }
-}
-
-void
-FreeXkbFile(XkbFile *file)
-{
-    XkbFile *next;
-
-    while (file)
-    {
-        next = (XkbFile *) file->common.next;
-
-        switch (file->file_type) {
-        case FILE_TYPE_KEYMAP:
-            FreeXkbFile((XkbFile *) file->defs);
-            break;
-
-        case FILE_TYPE_TYPES:
-        case FILE_TYPE_COMPAT:
-        case FILE_TYPE_SYMBOLS:
-        case FILE_TYPE_KEYCODES:
-        case FILE_TYPE_GEOMETRY:
-            FreeStmt(file->defs);
-            break;
-
-        default:
-            break;
-        }
-
-        free(file->name);
-        free(file);
-        file = next;
-    }
 }
 
 static const char *xkb_file_type_strings[_FILE_TYPE_NUM_ENTRIES] = {

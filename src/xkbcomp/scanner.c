@@ -5,6 +5,7 @@
 
 #include "config.h"
 
+#include "bump.h"
 #include "xkbcomp-priv.h"
 #include "parser-priv.h"
 
@@ -44,7 +45,7 @@ number(struct scanner *s, int64_t *out, int *out_tok)
 }
 
 int
-_xkbcommon_lex(YYSTYPE *yylval, struct scanner *s)
+_xkbcommon_lex(YYSTYPE *yylval, struct scanner *s, struct bump *bump)
 {
     int tok;
 
@@ -103,7 +104,7 @@ skip_more_whitespace_and_comments:
                         "unterminated string literal");
             return ERROR_TOK;
         }
-        yylval->str = strdup(s->buf);
+        yylval->str = bump_strdup(bump, s->buf);
         if (!yylval->str)
             return ERROR_TOK;
         return STRING;
@@ -175,7 +176,8 @@ skip_more_whitespace_and_comments:
 }
 
 XkbFile *
-XkbParseString(struct xkb_context *ctx, const char *string, size_t len,
+XkbParseString(struct bump *bump, struct xkb_context *ctx,
+               const char *string, size_t len,
                const char *file_name, const char *map)
 {
     struct scanner scanner;
@@ -194,11 +196,11 @@ XkbParseString(struct xkb_context *ctx, const char *string, size_t len,
         return NULL;
     }
 
-    return parse(ctx, &scanner, map);
+    return parse(bump, ctx, &scanner, map);
 }
 
 XkbFile *
-XkbParseFile(struct xkb_context *ctx, FILE *file,
+XkbParseFile(struct bump *bump, struct xkb_context *ctx, FILE *file,
              const char *file_name, const char *map)
 {
     bool ok;
@@ -214,7 +216,7 @@ XkbParseFile(struct xkb_context *ctx, FILE *file,
         return NULL;
     }
 
-    xkb_file = XkbParseString(ctx, string, size, file_name, map);
+    xkb_file = XkbParseString(bump, ctx, string, size, file_name, map);
     unmap_file(string, size);
     return xkb_file;
 }

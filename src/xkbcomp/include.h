@@ -5,6 +5,7 @@
 #pragma once
 
 #include "ast.h"
+#include "bump.h"
 
 /* Reasonable threshold, with plenty of margin for keymaps in the wild */
 #define INCLUDE_MAX_DEPTH 15
@@ -16,8 +17,8 @@
     ((ch) == MERGE_OVERRIDE_PREFIX || (ch) == MERGE_AUGMENT_PREFIX)
 
 bool
-ParseIncludeMap(char **str_inout, char **file_rtrn, char **map_rtrn,
-                char *nextop_rtrn, char **extra_data);
+ParseIncludeMap(struct bump *bump, char **str_inout, char **file_rtrn,
+                char **map_rtrn, char *nextop_rtrn, char **extra_data);
 
 FILE *
 FindFileInXkbPath(struct xkb_context *ctx, const char *name,
@@ -28,5 +29,5 @@ bool
 ExceedsIncludeMaxDepth(struct xkb_context *ctx, unsigned int include_depth);
 
 XkbFile *
-ProcessIncludeFile(struct xkb_context *ctx, IncludeStmt *stmt,
-                   enum xkb_file_type file_type);
+ProcessIncludeFile(struct bump *bump, struct xkb_context *ctx,
+                   IncludeStmt *stmt, enum xkb_file_type file_type);
