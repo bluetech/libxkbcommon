@@ -233,6 +233,8 @@ libxkbcommon_sources = [
     'src/xkbcomp/xkbcomp-priv.h',
     'src/atom.c',
     'src/atom.h',
+    'src/bump.c',
+    'src/bump.h',
     'src/context.c',
     'src/context.h',
     'src/context-priv.c',
