@@ -63,20 +63,20 @@ ExprCreateArrayRef(xkb_atom_t element, xkb_atom_t field, ExprDef *entry);
 ExprDef *
 ExprEmptyList(void);
 
-ExprDef *
+ExprAction *
 ExprCreateAction(xkb_atom_t name, ExprDef *args);
 
-ExprDef *
-ExprCreateActionList(ExprDef *actions);
+ExprActionList *
+ExprCreateActionList(ExprAction *actions);
 
-ExprDef *
-ExprCreateMultiActionList(ExprDef *expr);
+ExprActionList *
+ExprCreateMultiActionList(ExprActionList *expr);
 
-ExprDef *
-ExprAppendActionList(ExprDef *expr, ExprDef *action);
+ExprActionList *
+ExprAppendActionList(ExprActionList *expr, ExprAction *action);
 
-ExprDef *
-ExprAppendMultiActionList(ExprDef *expr, ExprDef *append);
+ExprActionList *
+ExprAppendMultiActionList(ExprActionList *expr, ExprActionList *append);
 
 ExprDef *
 ExprCreateMultiKeysymList(ExprDef *list);

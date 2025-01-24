@@ -176,6 +176,8 @@ resolve_keysym(struct parser_param *param, const char *name, xkb_keysym_t *sym_r
         struct { ParseCommon *head; ParseCommon *last; } anyList;
         ExprDef         *expr;
         struct { ExprDef *head; ExprDef *last; } exprList;
+        ExprAction      *action;
+        ExprActionList  *actions;
         VarDef          *var;
         struct { VarDef *head; VarDef *last; } varList;
         VModDef         *vmod;
@@ -206,8 +208,10 @@ resolve_keysym(struct parser_param *param, const char *name, xkb_keysym_t *sym_r
 %type <keysym>  KeySym
 %type <any>     Decl
 %type <anyList> DeclList
-%type <expr>    Expr Term Lhs Terminal ArrayInit Actions KeySyms
-%type <expr>    MultiKeySymList KeySymList MultiActionList ActionList Action Coord CoordList
+%type <expr>    Expr Term Lhs Terminal ArrayInit KeySyms
+%type <expr>    MultiKeySymList KeySymList Coord CoordList
+%type <action>  Action
+%type <actions> Actions ActionList MultiActionList
 %type <exprList> OptExprList ExprList
 %type <var>     VarDecl SymbolsVarDecl
 %type <varList> VarDeclList SymbolsBody OptSymbolsBody
@@ -230,7 +234,7 @@ resolve_keysym(struct parser_param *param, const char *name, xkb_keysym_t *sym_r
 %type <file>    XkbCompositeMap
 
 %destructor { FreeStmt((ParseCommon *) $$); }
-    <any> <expr> <var> <vmod> <interp> <keyType> <syms> <modMask> <groupCompat>
+    <any> <expr> <action> <actions> <var> <vmod> <interp> <keyType> <syms> <modMask> <groupCompat>
     <ledMap> <ledName> <keyCode> <keyAlias>
 %destructor { FreeStmt((ParseCommon *) $$.head); }
     <anyList> <exprList> <varList> <vmodList>
@@ -483,7 +487,7 @@ SymbolsVarDecl  :       Lhs EQUALS Expr         { $$ = VarCreate($1, $3); }
 ArrayInit       :       OBRACKET MultiKeySymList CBRACKET
                         { $$ = $2; }
                 |       OBRACKET MultiActionList CBRACKET
-                        { $$ = $2; }
+                        { $$ = (ExprDef *) $2; }
                 |       OBRACKET CBRACKET
                         { $$ = ExprEmptyList(); }
                 ;
@@ -677,7 +681,7 @@ Term            :       MINUS Term
                 |       Lhs
                         { $$ = $1;  }
                 |       FieldSpec OPAREN OptExprList CPAREN %prec OPAREN
-                        { $$ = ExprCreateAction($1, $3.head); }
+                        { $$ = (ExprDef *) ExprCreateAction($1, $3.head); }
                 |       Terminal
                         { $$ = $1;  }
                 |       OPAREN Expr CPAREN

@@ -792,17 +792,10 @@ static const actionHandler handleAction[_ACTION_TYPE_NUM_ENTRIES] = {
 
 bool
 HandleActionDef(struct xkb_context *ctx, ActionsInfo *info,
-                const struct xkb_mod_set *mods, ExprDef *def,
+                const struct xkb_mod_set *mods, ExprAction *def,
                 union xkb_action *action)
 {
-    if (def->expr.op != EXPR_ACTION_DECL) {
-        log_err(ctx, XKB_ERROR_WRONG_FIELD_TYPE,
-                "Expected an action definition, found %s\n",
-                expr_op_type_to_string(def->expr.op));
-        return false;
-    }
-
-    const char *str = xkb_atom_text(ctx, def->action.name);
+    const char *str = xkb_atom_text(ctx, def->name);
     enum xkb_action_type handler_type;
     if (!stringToActionType(str, &handler_type)) {
         log_err(ctx, XKB_LOG_MESSAGE_NO_ID, "Unknown action %s\n", str);
@@ -821,7 +814,7 @@ HandleActionDef(struct xkb_context *ctx, ActionsInfo *info,
      * particular instance, e.g. "modifiers" and "clearLocks" in:
      *     SetMods(modifiers=Alt,clearLocks);
      */
-    for (ExprDef *arg = def->action.args; arg != NULL;
+    for (ExprDef *arg = def->args; arg != NULL;
          arg = (ExprDef *) arg->common.next) {
         const ExprDef *value;
         ExprDef *field, *arrayRtrn;

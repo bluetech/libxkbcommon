@@ -489,8 +489,15 @@ SetInterpField(CompatInfo *info, SymInterpInfo *si, const char *field,
         if (arrayNdx)
             return ReportSINotArray(info, si, field);
 
+        if (value->expr.op != EXPR_ACTION_DECL) {
+            log_err(info->ctx, XKB_ERROR_WRONG_FIELD_TYPE,
+                    "Expected an action definition, found %s\n",
+                    expr_op_type_to_string(value->expr.op));
+            return false;
+        }
+
         if (!HandleActionDef(info->ctx, info->actions, &info->mods,
-                             value, &si->interp.action))
+                             &value->action, &si->interp.action))
             return false;
 
         si->defined |= SI_FIELD_ACTION;

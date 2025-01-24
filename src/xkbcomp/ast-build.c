@@ -56,6 +56,7 @@
 #include "xkbcomp-priv.h"
 #include "ast-build.h"
 #include "include.h"
+#include "xkbcomp/ast.h"
 
 static ExprDef *
 ExprCreate(enum expr_op_type op, enum expr_value_type type, size_t size)
@@ -189,71 +190,71 @@ ExprEmptyList(void)
     return ExprCreate(EXPR_EMPTY_LIST, EXPR_TYPE_UNKNOWN, sizeof(ExprCommon));
 }
 
-ExprDef *
+ExprAction *
 ExprCreateAction(xkb_atom_t name, ExprDef *args)
 {
-    ExprDef *expr = ExprCreate(EXPR_ACTION_DECL, EXPR_TYPE_UNKNOWN, sizeof(ExprAction));
+    ExprAction *expr = &ExprCreate(EXPR_ACTION_DECL, EXPR_TYPE_UNKNOWN, sizeof(ExprAction))->action;
     if (!expr)
         return NULL;
-    expr->action.name = name;
-    expr->action.args = args;
+    expr->name = name;
+    expr->args = args;
     return expr;
 }
 
-ExprDef *
-ExprCreateActionList(ExprDef *actions)
+ExprActionList *
+ExprCreateActionList(ExprAction *actions)
 {
-    ExprDef *expr = ExprCreate(EXPR_ACTION_LIST, EXPR_TYPE_ACTIONS, sizeof(ExprActionList));
+    ExprActionList *expr = &ExprCreate(EXPR_ACTION_LIST, EXPR_TYPE_ACTIONS, sizeof(ExprActionList))->actions;
     if (!expr)
         return NULL;
 
-    darray_init(expr->actions.actions);
-    darray_init(expr->actions.actionsMapIndex);
-    darray_init(expr->actions.actionsNumEntries);
+    darray_init(expr->actions);
+    darray_init(expr->actionsMapIndex);
+    darray_init(expr->actionsNumEntries);
 
-    darray_append(expr->actions.actions, actions);
-    darray_append(expr->actions.actionsMapIndex, 0);
-    darray_append(expr->actions.actionsNumEntries, 1);
+    darray_append(expr->actions, actions);
+    darray_append(expr->actionsMapIndex, 0);
+    darray_append(expr->actionsNumEntries, 1);
     return expr;
 }
 
-ExprDef *
-ExprCreateMultiActionList(ExprDef *expr)
+ExprActionList *
+ExprCreateMultiActionList(ExprActionList *expr)
 {
-    unsigned nLevels = darray_size(expr->actions.actionsMapIndex);
+    unsigned nLevels = darray_size(expr->actionsMapIndex);
 
-    darray_resize(expr->actions.actionsMapIndex, 1);
-    darray_resize(expr->actions.actionsNumEntries, 1);
-    darray_item(expr->actions.actionsMapIndex, 0) = 0;
-    darray_item(expr->actions.actionsNumEntries, 0) = nLevels;
-
-    return expr;
-}
-
-ExprDef *
-ExprAppendActionList(ExprDef *expr, ExprDef *action)
-{
-    unsigned nSyms = darray_size(expr->actions.actions);
-
-    darray_append(expr->actions.actionsMapIndex, nSyms);
-    darray_append(expr->actions.actionsNumEntries, 1);
-    darray_append(expr->actions.actions, action);
+    darray_resize(expr->actionsMapIndex, 1);
+    darray_resize(expr->actionsNumEntries, 1);
+    darray_item(expr->actionsMapIndex, 0) = 0;
+    darray_item(expr->actionsNumEntries, 0) = nLevels;
 
     return expr;
 }
 
-ExprDef *
-ExprAppendMultiActionList(ExprDef *expr, ExprDef *append)
+ExprActionList *
+ExprAppendActionList(ExprActionList *expr, ExprAction *action)
 {
-    unsigned nSyms = darray_size(expr->actions.actions);
-    unsigned numEntries = darray_size(append->actions.actions);
+    unsigned nSyms = darray_size(expr->actions);
 
-    darray_append(expr->actions.actionsMapIndex, nSyms);
-    darray_append(expr->actions.actionsNumEntries, numEntries);
+    darray_append(expr->actionsMapIndex, nSyms);
+    darray_append(expr->actionsNumEntries, 1);
+    darray_append(expr->actions, action);
+
+    return expr;
+}
+
+ExprActionList *
+ExprAppendMultiActionList(ExprActionList *expr, ExprActionList *append)
+{
+    unsigned nSyms = darray_size(expr->actions);
+    unsigned numEntries = darray_size(append->actions);
+
+    darray_append(expr->actionsMapIndex, nSyms);
+    darray_append(expr->actionsNumEntries, numEntries);
 
     /* Steal */
-    darray_concat(expr->actions.actions, append->actions.actions);
-    darray_free(append->actions.actions);
+    darray_concat(expr->actions, append->actions);
+    darray_free(append->actions);
 
     FreeStmt((ParseCommon *) append);
 
@@ -654,7 +655,7 @@ FreeExpr(ExprDef *expr)
     if (!expr)
         return;
 
-    ExprDef** action;
+    ExprAction** action;
 
     switch (expr->expr.op) {
     case EXPR_NEGATE:

@@ -47,7 +47,7 @@ FreeActionsInfo(ActionsInfo *info);
 
 bool
 HandleActionDef(struct xkb_context *ctx, ActionsInfo *info,
-                const struct xkb_mod_set *mods, ExprDef *def,
+                const struct xkb_mod_set *mods, ExprAction *def,
                 union xkb_action *action);
 
 bool

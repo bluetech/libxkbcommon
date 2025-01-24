@@ -966,7 +966,7 @@ AddActionsToKey(SymbolsInfo *info, KeyInfo *keyi, ExprDef *arrayNdx,
         }
 
         for (unsigned j = 0; j < leveli->num_syms; j++) {
-            ExprDef *act = darray_item(value->actions.actions, act_index + j);
+            ExprAction *act = darray_item(value->actions.actions, act_index + j);
             union xkb_action *toAct;
             if (leveli->num_syms > 1) {
                 toAct = &darray_item(groupi->levels, i).a.actions[j];
