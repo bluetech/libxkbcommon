@@ -160,7 +160,7 @@ test_keymaps(void)
         {
             .input = "xkb_keymap {\n",
             .log =
-                "error: [XKB-769] (input string):1:12: syntax error\n"
+                "error: [XKB-769] (input string):2:1: syntax error\n"
                 "error: [XKB-822] Failed to parse input xkb string\n",
             .error = true
         },
@@ -214,7 +214,7 @@ test_keymaps(void)
         xkb_keymap_unref(keymap);
         assert_printf(streq_not_null(darray_items(log_string), keymaps[k].log),
                       "Expected:\n%s\nGot:\n%s\n",
-                      darray_items(log_string), keymaps[k].log);
+                      keymaps[k].log, darray_items(log_string));
         darray_free(log_string);
     }
 
